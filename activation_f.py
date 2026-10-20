@@ -55,8 +55,29 @@ class LeakyReLU:
         return np.where(self.mask, dA, self.alpha * dA)
         
 
-    def tanh (x) -> np.ndarray:
-        return np.tanh(x)
+class tanh:
+    """"
+    Hyperbolic tangent (tanh) activation function, stores A for backprop
+    """
+    def __init__(self):
+        self.A: Optional[NDArray] = None
+
+    def forward(self, Z: NDArray[np.floating]) -> NDArray[np.floating]:
+        """
+        Computes and stores output value A
+        """
+        self.A = np.tanh(Z)
+        return self.A
+
+    def backward(self, dA: NDArray[np.floating]) -> NDArray[np.floating]:
+        """
+        Backward pass, computes gradient
+        Derivative for tanh(x) is 1 - tanh(x)^2
+        If Z positive A ~ 1 -> 1 - A^2 ~ 0
+        If Z negative A ~ -1 -> 1 - A^2 ~ 0
+        If Z = 0, A = 0 -> max gradient
+        """
+        return dA * (1.0 - self.A ** 2)
 
     def sigmoid(x) -> np.ndarray:
         return 1/(1 + np.exp(-x))
