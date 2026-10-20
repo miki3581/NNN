@@ -29,9 +29,31 @@ class ReLU:
         return dA * self.mask
 
 
+class LeakyReLU:
+    """
+    Leaky ReLU activation layer with forward and backward passes
+    """
 
-    def LeakyReLU (x, alpha = 0.01) -> np.ndarray:
-        return np.where(x > 0, x, alpha * x)
+    def __init__(self, alpha: float = 0.01) -> None:
+        """
+        Initializes mask to store activated enurons during forward pass
+        """
+        self.alpha = alpha
+        self.mask: Optional[NDArray[np.bool_]] = None
+
+    def forward(self, Z: NDArray[np.floating]) -> NDArray[np.floating]:
+        """
+        Forward pass, assigns mask value for neurons and calculates max with alpha
+        """
+        self.mask = (Z > 0)
+        return np.where(self.mask, Z, Z * self.alpha)
+
+    def backward(self, dA: NDArray[np.floating]) -> NDArray[np.floating]:
+        """
+        Backward pass, computes gradient for backprop
+        """
+        return np.where(self.mask, dA, self.alpha * dA)
+        
 
     def tanh (x) -> np.ndarray:
         return np.tanh(x)
