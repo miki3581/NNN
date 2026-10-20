@@ -19,8 +19,16 @@ class ReLU:
         self.mask = (Z > 0.0)
         return np.maximum(0.0, Z)
 
-    def backward(self, X:NDArray[np.floating]) -> NDArray[np.flaoting]:
-        pass
+    def backward(self, dA:NDArray[np.floating]) -> NDArray[np.flaoting]:
+        """
+        Backward pass, computes gradient for backprop
+        """
+        if self.mask is None:
+            raise RuntimeError("Mask is empty, backward called before forward")
+
+        return dA * self.mask
+
+
 
     def LeakyReLU (x, alpha = 0.01) -> np.ndarray:
         return np.where(x > 0, x, alpha * x)
