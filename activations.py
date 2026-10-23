@@ -98,7 +98,9 @@ class Sigmoid:
         """
         Computes and stores output value A
         """
-        self.A = np.where(Z < 0, np.exp(Z)/(np.exp(Z) + 1), 1/(1 + np.exp(-Z)))
+        # exp(-|Z|) is in (0, 1] for every Z, so neither branch can overflow
+        exp_neg_abs = np.exp(-np.abs(Z))
+        self.A = np.where(Z >= 0, 1.0 / (1.0 + exp_neg_abs), exp_neg_abs / (1.0 + exp_neg_abs))
         return self.A
 
     def backward(self, dA: NDArray[np.floating]) -> NDArray[np.floating]:
