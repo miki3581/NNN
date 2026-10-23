@@ -102,6 +102,32 @@ class Sigmoid:
         f'(x) = A(1 - A)
         """
         return dA * self.A * (1.0 - self.A)
-    
-    def softmax(x) -> np.ndarray:
-        return np.exp(x - np.max(x)) / np.sum(np.exp(x - np.max(x)))
+
+class Softmax:
+    def __init__(self, axis: int = -1) -> None:
+        """
+        Storing output probabilities A
+        """
+        self.A: Optional[NDArray[np.floating]] = None
+        self.axis = axis
+
+    def forward(self, Z: NDArray[np.floating]) -> NDArray[np.floating]:
+        """
+        Calculating probability distribution A minding the overflow for large Z
+        """
+        max_Z = np.max(Z, axis=self.axis, keepdims=True)
+        shifted_Z = Z - max_Z
+        exp_Z = np.exp(shifted_Z)
+        sum_exp_Z = np.sum(exp_Z, axis = self.axis, keepdims=True)
+
+        self.A = exp_Z / sum_exp_Z
+        return self.A
+        #return np.exp(x - np.max(x)) / np.sum(np.exp(x - np.max(x)))
+
+    def backward(self, dA: NDArray[np.floating]) -> NDArray[np.floating]:
+        """
+        Calculating gradient
+        """
+        sum_dA_A = np.sum(dA * self.A, axis=self.axis, keepdims=True)
+        dZ = self.A * (dA - sum_dA_A)
+        return dZ
