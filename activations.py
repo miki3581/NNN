@@ -99,7 +99,7 @@ class Sigmoid:
         Computes and stores output value A
         """
         self.A = np.exp(Z)/(np.exp(Z) + 1)
-        return self.A
+        return np.where(Z < 0, np.exp(Z)/(np.exp(Z) + 1), 1/(1 + np.exp(-Z)))
 
     def backward(self, dA: NDArray[np.floating]) -> NDArray[np.floating]:
         """
