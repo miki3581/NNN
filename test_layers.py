@@ -67,9 +67,23 @@ def test_manual_example():
     assert np.allclose(layer.db, expected_db), f"Wrong db: {layer.db}"
     assert np.allclose(dX, expected_dX), f"Wrong dX: {dX}"
 
+def test_init():
+
+    d_in, d_out = 1000, 500
+    expected_he = np.sqrt(2 / d_in)
+    expected_xavier = np.sqrt(2 / (d_in + d_out))
+
+    for init, expected_std in (("he", expected_he), ("xavier", expected_xavier)):
+        rng = np.random.default_rng(42)
+        layer = Dense(d_in, d_out, rng, init = init, l2 = 0.0)
+        std = layer.W.std()
+        mean = layer.W.mean()
+        assert abs(std / expected_std - 1) < 0.01, f"Std diff to large {init}: std {std:.5f}, expected {expected_std:.5f}"
+        assert abs(mean) < 0.01 * expected_std, f"Mean too large {init}: mean {mean:.5f}"
+        assert np.all(layer.b == 0), f"{init} b not zeroed"
 
 def main():
-    tests = [test_shapes, test_order, test_invalid_init, test_manual_example]
+    tests = [test_shapes, test_order, test_invalid_init, test_manual_example, test_init]
 
     for test in tests:
         try:
