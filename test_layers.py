@@ -47,9 +47,29 @@ def test_invalid_init():
     else:
         assert False, "init='a' did not raise ValueError"
 
+def test_manual_example():
+    
+    rng = np.random.default_rng(42)
+    d_in, d_out = 2, 3
+    layer = Dense(d_in, d_out, rng, l2 = 0.0)
+    layer.W = np.array([[1.0, 0.0, -1.0], [2.0, 1.0,  0.0]])
+    layer.b = np.array([[0.5, 0.0, -0.5]])
+    X = np.array([[1.0, 2.0], [0.0, 0.0]])
+    expected_Z = np.array([[5.5, 2.0, -1.5],[0.5, 0.0, -0.5]])
+    expected_dW = np.array([[1.0, 1.0 ,1.0], [2.0, 2.0, 2.0]])
+    expected_db = np.array([[2.0, 2.0, 2.0]])
+    expected_dX = np.array([[0.0, 3.0], [0.0, 3.0]])
+    Z = layer.forward(X)
+    dZ = np.ones((np.shape(Z)))
+    dX = layer.backward(dZ)
+    assert np.allclose(Z, expected_Z), f"Wrong Z: {Z}"
+    assert np.allclose(layer.dW, expected_dW), f"Wrong dW: {layer.dW}"
+    assert np.allclose(layer.db, expected_db), f"Wrong db: {layer.db}"
+    assert np.allclose(dX, expected_dX), f"Wrong dX: {dX}"
+
 
 def main():
-    tests = [test_shapes, test_order, test_invalid_init]
+    tests = [test_shapes, test_order, test_invalid_init, test_manual_example]
 
     for test in tests:
         try:
