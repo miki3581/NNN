@@ -82,17 +82,33 @@ def test_init():
         assert abs(mean) < 0.01 * expected_std, f"Mean too large {init}: mean {mean:.5f}"
         assert np.all(layer.b == 0), f"{init} b not zeroed"
 
-def main():
-    tests = [test_shapes, test_order, test_invalid_init, test_manual_example, test_init]
+def test_repeatability():
+    
+    rng1 = np.random.default_rng(42)
+    rng2 = np.random.default_rng(42)
+    d_in, d_out = 7, 3
+    
+    layer1 = Dense(d_in, d_out, rng1, l2 = 0.0)
+    layer2 = Dense(d_in, d_out, rng2, l2 = 0.0)
+    assert np.array_equal(layer1.W, layer2.W), f"Weights not equal: {layer1.W, layer2.W}"
 
+    rng = np.random.default_rng(42)
+    layer3 = Dense(d_in, d_out, rng, l2 = 0.0)
+    layer4 = Dense(d_in, d_out, rng, l2 = 0.0)
+    assert not np.array_equal(layer3.W, layer4.W), f"Weights are the same: {layer3.W, layer4.W}"
+
+def main():
+    tests = [test_shapes, test_order, test_invalid_init, test_manual_example, test_init, test_repeatability]
+
+    all_passed = True
     for test in tests:
         try:
-            test
+            test()
         except Exception as e:
             all_passed = False
             print(f"FAIL  {test.__name__:<25} {type(e).__name__}: {e}")
         else:
-            print(f"FAIL  {test.__name__}")
+            print(f"PASS  {test.__name__}")
 
     print("\nAll checks passed." if all_passed else "\nSome checks FAILED.")
     raise SystemExit(0 if all_passed else 1)
