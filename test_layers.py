@@ -48,3 +48,20 @@ def test_invalid_init():
         assert False, "init='a' did not raise ValueError"
 
 
+def main():
+    tests = [test_shapes, test_order, test_invalid_init]
+
+    for test in tests:
+        try:
+            test
+        except Exception as e:
+            all_passed = False
+            print(f"FAIL  {test.__name__:<25} {type(e).__name__}: {e}")
+        else:
+            print(f"FAIL  {test.__name__}")
+
+    print("\nAll checks passed." if all_passed else "\nSome checks FAILED.")
+    raise SystemExit(0 if all_passed else 1)
+
+if __name__ == "__main__":
+    main()
