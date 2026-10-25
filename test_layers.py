@@ -152,10 +152,62 @@ def test_X_very_large():
     assert np.all(np.isfinite(layer.db)), "db not finite for large X"
 
 
+EPS = 1e-6
+TOLERANCE = 1e-6
+
+
+def num_grad(f, P):
+
+    grad = np.zeros_like(P)
+    for idx in np.ndindex(P.shape):
+        original = P[idx]
+        P[idx] = original + EPS
+        L_plus = f()
+        P[idx] = original - EPS
+        L_minus = f()
+        P[idx] = original
+        grad[idx] = (L_plus - L_minus) / (2 * EPS)
+    return grad
+
+
+def rel_error(a, b):
+    norm_sum = np.linalg.norm(a) + np.linalg.norm(b)
+    if norm_sum == 0.0:
+        return 0.0
+    return np.linalg.norm(a - b) / norm_sum
+
+
+def test_gradcheck_dense():
+
+    N, d_in, d_out = 4, 5, 3
+    rng = np.random.default_rng(42)
+
+    for init in ("he", "xavier"):
+        layer = Dense(d_in, d_out, rng, init=init, l2=0.1)
+        X = rng.normal(size=(N, d_in))
+        dA = rng.normal(size=(N, d_out))
+
+        def loss():
+            return np.sum(dA * layer.forward(X)) + 0.5 * layer.l2 * np.sum(layer.W ** 2)
+
+        layer.forward(X)
+        dX = layer.backward(dA)
+        dW = layer.dW.copy()
+        db = layer.db.copy()
+
+        num_dX = num_grad(loss, X)
+        num_dW = num_grad(loss, layer.W)
+        num_db = num_grad(loss, layer.b)
+
+        for name, analytic, numeric in (("dX", dX, num_dX), ("dW", dW, num_dW), ("db", db, num_db)):
+            error = rel_error(analytic, numeric)
+            assert error < TOLERANCE, f"{init}: {name} relative error {error:.2e}"
+
+
 def main():
     tests = [test_shapes, test_order, test_invalid_init, 
              test_manual_example, test_init, test_repeatability, 
-             test_L2, test_X_all_zeros, test_X_very_large]
+             test_L2, test_X_all_zeros, test_X_very_large, test_gradcheck_dense]
 
     all_passed = True
     for test in tests:
