@@ -2,7 +2,7 @@
 Tests for the Dense layer: shapes, call order, init, L2, extreme inputs and gradient check.
 """
 from layers import Dense
-from gradcheck import num_grad, rel_error
+from gradcheck import num_grad, rel_error, TOLERANCE
 import numpy as np
 
 
