@@ -97,8 +97,31 @@ def test_repeatability():
     layer4 = Dense(d_in, d_out, rng, l2 = 0.0)
     assert not np.array_equal(layer3.W, layer4.W), f"Weights are the same: {layer3.W, layer4.W}"
 
+def test_L2():
+
+    N, d_in, d_out = 8, 7, 3
+    rng = np.random.default_rng(42)
+    rng2 = np.random.default_rng(42)
+    layer1 = Dense(d_in, d_out, rng, l2 = 0.0)
+    layer2 = Dense(d_in, d_out, rng2, l2 = 0.1)
+
+    rng3 = np.random.default_rng(40)
+    X = rng3.normal(size=(N, d_in))
+    dZ = rng3.normal(size=(N, d_out))
+
+    layer1.forward(X)
+    dX1 = layer1.backward(dZ)
+    layer2.forward(X)
+    dX2 = layer2.backward(dZ)
+    data_grad = X.T @ dZ
+
+    assert np.array_equal(layer1.dW, data_grad), "dW with L2=0 differs from X.T @ dZ"
+    assert np.allclose(layer2.dW - data_grad, 0.1 * layer2.W), "dW with L2 differs from 0.1 weight"
+    assert np.array_equal(layer1.db, layer2.db), "db differs between layers"
+    assert np.array_equal(dX1, dX2), "dX differs between layers"
+
 def main():
-    tests = [test_shapes, test_order, test_invalid_init, test_manual_example, test_init, test_repeatability]
+    tests = [test_shapes, test_order, test_invalid_init, test_manual_example, test_init, test_repeatability, test_L2]
 
     all_passed = True
     for test in tests:
