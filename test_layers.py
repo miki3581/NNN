@@ -120,8 +120,36 @@ def test_L2():
     assert np.array_equal(layer1.db, layer2.db), "db differs between layers"
     assert np.array_equal(dX1, dX2), "dX differs between layers"
 
+def test_X_all_zeros():
+
+    N, d_in, d_out = 8, 7, 3
+    rng = np.random.default_rng(42)
+    layer = Dense(d_in, d_out, rng, l2 = 0.1)
+    layer.b = rng.normal(size = (1, d_out))
+    X = np.zeros((N, d_in))
+    Z = layer.forward(X)
+    dZ = rng.normal(size = (Z.shape))
+    dX = layer.backward(dZ)
+    assert np.allclose(Z, layer.b), "Z differs from b while X are zeros"
+    assert np.allclose(layer.dW, 0.1 * layer.W), "dW differs from 0.1 W while X are zeros"
+
+def test_X_very_large():
+    N, d_in, d_out = 8, 7, 3
+    rng = np.random.default_rng(42)
+    layer = Dense(d_in, d_out, rng, l2 = 0.1)
+    X = 1e6 * rng.normal(size = (N, d_in))
+    Z = layer.forward(X)
+    dZ = rng.normal(size = (Z.shape))
+    dX = layer.backward(dZ)
+    assert np.all(np.isfinite(Z)), "Z not finite for large X"
+    assert np.all(np.isfinite(dX)), "dX not finite for large X"
+    assert np.all(np.isfinite(layer.dW)), "dW not finite for large X"
+    assert np.all(np.isfinite(layer.db)), "db not finite for large X"
+
 def main():
-    tests = [test_shapes, test_order, test_invalid_init, test_manual_example, test_init, test_repeatability, test_L2]
+    tests = [test_shapes, test_order, test_invalid_init, 
+             test_manual_example, test_init, test_repeatability, 
+             test_L2, test_X_all_zeros, test_X_very_large]
 
     all_passed = True
     for test in tests:
