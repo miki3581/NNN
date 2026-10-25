@@ -1,9 +1,15 @@
+"""
+Tests for the Dense layer: shapes, call order, init, L2, extreme inputs and gradient check.
+"""
 from layers import Dense
 import numpy as np
 
 
 def test_shapes():
-    
+    """
+    Z, dX, dW and db have the expected shapes for a single sample (N=1) and a batch (N=8).
+    """
+
     d_in, d_out = 7, 3
 
     for N in (1, 8):
@@ -21,7 +27,10 @@ def test_shapes():
 
 
 def test_order():
-    
+    """
+    backward called before forward raises RuntimeError.
+    """
+
     d_in, d_out = 7, 3
     rng = np.random.default_rng(42)    
     layer = Dense(d_in, d_out, rng)
@@ -36,7 +45,10 @@ def test_order():
 
 
 def test_invalid_init():
-    
+    """
+    An unknown init name raises ValueError.
+    """
+
     d_in, d_out = 7, 3
     rng = np.random.default_rng(42)
 
@@ -49,7 +61,10 @@ def test_invalid_init():
 
 
 def test_manual_example():
-    
+    """
+    forward and backward match values computed by hand for a small 2 -> 3 layer.
+    """
+
     rng = np.random.default_rng(42)
     d_in, d_out = 2, 3
     layer = Dense(d_in, d_out, rng, l2 = 0.0)
@@ -70,6 +85,9 @@ def test_manual_example():
 
 
 def test_init():
+    """
+    He and Xavier weights have mean close to 0 and std within 1% of the expected value; bias is zero.
+    """
 
     d_in, d_out = 1000, 500
     expected_he = np.sqrt(2 / d_in)
@@ -86,7 +104,10 @@ def test_init():
 
 
 def test_repeatability():
-    
+    """
+    The same seed gives identical weights; one generator gives different weights to consecutive layers.
+    """
+
     rng1 = np.random.default_rng(42)
     rng2 = np.random.default_rng(42)
     d_in, d_out = 7, 3
@@ -102,6 +123,9 @@ def test_repeatability():
 
 
 def test_L2():
+    """
+    L2 changes only dW (by exactly l2 * W); db and dX do not depend on l2.
+    """
 
     N, d_in, d_out = 8, 7, 3
     rng = np.random.default_rng(42)
@@ -126,6 +150,9 @@ def test_L2():
 
 
 def test_X_all_zeros():
+    """
+    For X = 0 the output equals the bias and dW reduces to the L2 term.
+    """
 
     N, d_in, d_out = 8, 7, 3
     rng = np.random.default_rng(42)
@@ -139,6 +166,9 @@ def test_X_all_zeros():
     assert np.allclose(layer.dW, 0.1 * layer.W), "dW differs from 0.1 W while X are zeros"
 
 def test_X_very_large():
+    """
+    Very large inputs (~1e6) give finite Z, dX, dW and db.
+    """
     N, d_in, d_out = 8, 7, 3
     rng = np.random.default_rng(42)
     layer = Dense(d_in, d_out, rng, l2 = 0.1)
@@ -157,6 +187,9 @@ TOLERANCE = 1e-6
 
 
 def num_grad(f, P):
+    """
+    Central-difference estimate of df/dP. P is perturbed in place and restored after each step.
+    """
 
     grad = np.zeros_like(P)
     for idx in np.ndindex(P.shape):
@@ -171,6 +204,9 @@ def num_grad(f, P):
 
 
 def rel_error(a, b):
+    """
+    Relative error ||a - b|| / (||a|| + ||b||); returns 0.0 when both are zero.
+    """
     norm_sum = np.linalg.norm(a) + np.linalg.norm(b)
     if norm_sum == 0.0:
         return 0.0
@@ -178,6 +214,10 @@ def rel_error(a, b):
 
 
 def test_gradcheck_dense():
+    """
+    Compare dX, dW and db from backward with numerical gradients of
+    L = sum(dA * forward(X)) + (l2 / 2) * sum(W ** 2), for He and Xavier init.
+    """
 
     N, d_in, d_out = 4, 5, 3
     rng = np.random.default_rng(42)
@@ -205,6 +245,9 @@ def test_gradcheck_dense():
 
 
 def main():
+    """
+    Run all tests, print PASS/FAIL for each and exit with code 1 if any test failed.
+    """
     tests = [test_shapes, test_order, test_invalid_init, 
              test_manual_example, test_init, test_repeatability, 
              test_L2, test_X_all_zeros, test_X_very_large, test_gradcheck_dense]
