@@ -11,7 +11,7 @@ def test_shapes():
         layer = Dense(d_in, d_out, rng)
         X = np.ones((N, d_in))
         Z = layer.forward(X)
-        dZ = np.ones((np.shape(Z)))
+        dZ = np.ones(Z.shape)
         dX = layer.backward(dZ)
 
         assert Z.shape == (N, d_out), f"Wrong Z shape : {Z.shape}"
@@ -47,6 +47,7 @@ def test_invalid_init():
     else:
         assert False, "init='a' did not raise ValueError"
 
+
 def test_manual_example():
     
     rng = np.random.default_rng(42)
@@ -60,12 +61,13 @@ def test_manual_example():
     expected_db = np.array([[2.0, 2.0, 2.0]])
     expected_dX = np.array([[0.0, 3.0], [0.0, 3.0]])
     Z = layer.forward(X)
-    dZ = np.ones((np.shape(Z)))
+    dZ = np.ones(Z.shape)
     dX = layer.backward(dZ)
     assert np.allclose(Z, expected_Z), f"Wrong Z: {Z}"
     assert np.allclose(layer.dW, expected_dW), f"Wrong dW: {layer.dW}"
     assert np.allclose(layer.db, expected_db), f"Wrong db: {layer.db}"
     assert np.allclose(dX, expected_dX), f"Wrong dX: {dX}"
+
 
 def test_init():
 
@@ -78,9 +80,10 @@ def test_init():
         layer = Dense(d_in, d_out, rng, init = init, l2 = 0.0)
         std = layer.W.std()
         mean = layer.W.mean()
-        assert abs(std / expected_std - 1) < 0.01, f"Std diff to large {init}: std {std:.5f}, expected {expected_std:.5f}"
+        assert abs(std / expected_std - 1) < 0.01, f"Std diff too large {init}: std {std:.5f}, expected {expected_std:.5f}"
         assert abs(mean) < 0.01 * expected_std, f"Mean too large {init}: mean {mean:.5f}"
         assert np.all(layer.b == 0), f"{init} b not zeroed"
+
 
 def test_repeatability():
     
@@ -96,6 +99,7 @@ def test_repeatability():
     layer3 = Dense(d_in, d_out, rng, l2 = 0.0)
     layer4 = Dense(d_in, d_out, rng, l2 = 0.0)
     assert not np.array_equal(layer3.W, layer4.W), f"Weights are the same: {layer3.W, layer4.W}"
+
 
 def test_L2():
 
@@ -119,6 +123,7 @@ def test_L2():
     assert np.allclose(layer2.dW - data_grad, 0.1 * layer2.W), "dW with L2 differs from 0.1 weight"
     assert np.array_equal(layer1.db, layer2.db), "db differs between layers"
     assert np.array_equal(dX1, dX2), "dX differs between layers"
+
 
 def test_X_all_zeros():
 
@@ -146,6 +151,7 @@ def test_X_very_large():
     assert np.all(np.isfinite(layer.dW)), "dW not finite for large X"
     assert np.all(np.isfinite(layer.db)), "db not finite for large X"
 
+
 def main():
     tests = [test_shapes, test_order, test_invalid_init, 
              test_manual_example, test_init, test_repeatability, 
@@ -163,6 +169,7 @@ def main():
 
     print("\nAll checks passed." if all_passed else "\nSome checks FAILED.")
     raise SystemExit(0 if all_passed else 1)
+
 
 if __name__ == "__main__":
     main()
