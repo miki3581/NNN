@@ -1,6 +1,6 @@
 import numpy as np
 from gradcheck import num_grad, rel_error, TOLERANCE
-from losses import MSE, BCE
+from losses import MSE, BCE, CE
 
 
 def test_mse_order():
@@ -20,7 +20,7 @@ def test_mse_order():
 
 def test_mse_manual():
     """
-    L and dZ match values computed by hand
+    Computed L and dZ match values calculated by hand
     """
 
     loss = MSE()
@@ -38,7 +38,8 @@ def test_mse_manual():
 
 def test_mse_shapes():
     """
-    Z and y have the expected shapes
+    Checking if Z and y have the expected shapes
+    dZ and Z have the same shapes, L is float
     """
 
     Z = np.array([[1.0], [3.0]])
@@ -92,7 +93,7 @@ def test_bce_order():
 
 def test_bce_manual():
     """
-    L and dZ match values computed by hand
+    Computed L and dZ match values calculated by hand
     """
 
     loss = BCE()
@@ -111,7 +112,7 @@ def test_bce_manual():
 def test_bce_shapes():
     """
     Checking if Z and y have the expected shapes
-    dZ and Z have the same shapes, y is float
+    dZ and Z have the same shapes, L is float
     """
 
     Z = np.array([[1.0], [3.0]])
@@ -151,7 +152,7 @@ def test_bce_gradcheck():
 
 def test_bce_extreme_value():
     """
-    
+    Checks finite L and dZ for very large and small logits
     """
 
     Z = np.array([[1000.0], [-1000.0], [1000.0], [-1000.0]])
@@ -163,13 +164,106 @@ def test_bce_extreme_value():
     assert np.isclose(L, 500.0), "L doesn't equal 500"
     assert np.all(np.isfinite(dZ)), "dZ is infinite"
 
+
+def test_ce_order():
+    """
+    backward called before forward raises RuntimeError
+    """
+    
+    loss = CE()
+
+    try:
+        loss.backward()
+    except RuntimeError:
+        pass
+    else:
+        assert False, "Backward before forward did not raise RuntimeError"
+
+
+def test_ce_manual():
+    """
+    Computed L and dZ match values calculated by hand
+    """
+
+    loss = CE()
+    Z = np.zeros((2, 3))
+    y = np.array([[1.0, 0.0, 0.0], [0.0, 0.0, 1.0]])
+    L_exp = np.log(3)
+    dZ_exp = [[-1/3, 1/6, 1/6], [1/6, 1/6, -1/3]]
+
+    L = loss.forward(Z, y)
+    dZ = loss.backward()
+
+    assert np.isclose(L_exp, L), f"Calculated L different from theoretical: {L}"
+    assert np.allclose(dZ_exp, dZ), f"Calculated dZ different from theoretical: {dZ}"
+
+
+def test_ce_shapes():
+    """
+    Checking if Z and y have the expected shapes
+    dZ and Z have the same shapes, L is float
+    """
+
+    Z = np.array([[1.0], [3.0]])
+    y = np.zeros((1, ))
+    loss = CE()
+    try:
+        L = loss.forward(Z, y)
+    except ValueError:
+        pass
+    else:
+        assert False, "Z and y shapes doesn't match"
+
+    Z = np.array([[1.0], [3.0]])
+    y = np.zeros((2, 1))
+    L = loss.forward(Z, y)
+    dZ = loss.backward()
+    assert Z.shape == dZ.shape, "Z shape doesn't match"
+    assert isinstance(L, float), "L isn't float"
+
+
+def test_ce_gradcheck():
+    """
+    Compare analytic dZ with numerical gradient of L
+    rng.integers in y to randomize 0/1 label
+    """
+
+    rng = np.random.default_rng(42)
+
+    n, k = 5, 3
+    Z = rng.normal(size=(n, k))
+    y = np.eye(k)[rng.integers(0, k, size=n)]
+    
+    loss = CE()
+    L = loss.forward(Z, y)
+    dZ = loss.backward().copy()
+    grad = num_grad(lambda: loss.forward(Z, y), Z)
+    assert rel_error(dZ, grad) < TOLERANCE, "Difference between calculations and estimate larger than tolerance"
+
+
+def test_ce_extreme_value():
+    """
+    Checks finite L and dZ for very large and small logits
+    """
+
+    Z = np.array([[1000.0, 0.0, 0.0], [0.0, 1000.0, 0.0]])
+    y = np.array([[0.0, 1.0, 0.0], [0.0, 1.0, 0.0]])
+    loss = CE()
+    with np.errstate(over="raise", divide="raise", invalid="raise"):
+        L = loss.forward(Z, y)
+        dZ = loss.backward()
+    assert np.isclose(L, 500.0), "L doesn't equal 500"
+    assert np.all(np.isfinite(dZ)), "dZ is infinite"
+
+
 def main():
     """
     Run all tests, print PASS/FAIL for each and exit with code 1 if any test failed
     """
 
     tests = [test_mse_order, test_mse_manual, test_mse_shapes, test_mse_gradcheck,
-             test_bce_order, test_bce_manual, test_bce_shapes, test_bce_gradcheck, test_bce_extreme_value]
+             test_bce_order, test_bce_manual, test_bce_shapes, test_bce_gradcheck, test_bce_extreme_value,
+             test_ce_order, test_ce_manual, test_ce_shapes, test_ce_gradcheck, test_ce_extreme_value]
     all_passed = True
 
     for test in tests:
