@@ -2,6 +2,7 @@ import numpy as np
 from model import Model
 from layers import Dense
 from activations import Tanh
+from gradcheck import num_grad, rel_error, TOLERANCE
 from numpy.typing import NDArray
 
 def make_model(task: str, rng: np.random.Generator, l2: float=0.0) -> Model:
@@ -28,7 +29,7 @@ def make_data(task: str, rng: np.random.Generator, n: int=6) -> tuple[NDArray[np
     return X, y
 
 
-def test_shapes(task: str, rng: np.random):
+def test_shapes(task: str, rng: np.random.Generator):
 
     model = make_model(task=task, rng=rng)
     X, y = make_data(task=task, rng=rng)
@@ -47,7 +48,7 @@ def test_shapes(task: str, rng: np.random):
             assert dX.shape == X.shape, f"X [{X.shape}] and dX [{dX.shape}] shape don't match"
 
 
-def test_order(task: str, rng: np.random):
+def test_order(task: str, rng: np.random.Generator):
     """
     backward called before forward raises RuntimeError
     """
@@ -63,11 +64,43 @@ def test_order(task: str, rng: np.random):
         assert False, "Backward before forward did not raise RuntimeError"
 
 
+def test_bad_task(task: str, rng: np.random.Generator):
+
+
+    try:
+        model = make_model(task=task, rng=rng)
+    except ValueError:
+        pass
+    else:
+        assert False, "task='a' did not raise ValueError"
+
+
+def test_l2_penalty(rng: np.random.Generator):
+
+    task = "binary"
+    model = make_model(task=task, rng=rng)
+    model2 = make_model(task=task, rng=rng)
+    model.layers[0].l2 = 0.1
+    model.layers[2].l2 = 0.2
+    for layer in model.layers:
+        if isinstance(layer, Dense):
+            layer.W = np.ones_like(layer.W)
+            layer.b = np.ones_like(layer.b)
+    for layer in model2.layers:
+        if isinstance(layer, Dense):
+            layer.W = np.ones_like(layer.W)
+            layer.b = np.ones_like(layer.b)
+
+    assert np.isclose(model.l2_penalty(), 1.5), "l2 penalty value not as expected for l2 = 0.1/0.2"
+    assert np.isclose(model2.l2_penalty(), 0.0), "l2 penalty value not as expected for l2 = 0.0"
+    
+
 def main():
 
     rng = np.random.default_rng(42)
-    tests = [(test_shapes, ('regression', rng)), (test_shapes, ("binary", rng)), (test_shapes, ("multiclass", rng)),
-             (test_order, ('regression', rng)), (test_order, ("binary", rng)), (test_order, ("multiclass", rng))]
+    tests = [(test_shapes, ("regression", rng)), (test_shapes, ("binary", rng)), (test_shapes, ("multiclass", rng)),
+             (test_order, ("regression", rng)), (test_order, ("binary", rng)), (test_order, ("multiclass", rng)),
+             (test_bad_task, ("a", rng)), (test_l2_penalty, (rng,))]
 
     all_passed = True
     for test, args in tests:
