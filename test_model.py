@@ -3,6 +3,7 @@ from model import Model
 from layers import Dense
 from activations import Tanh
 from gradcheck import num_grad, rel_error, TOLERANCE
+from losses import MSE, BCE, CE
 from numpy.typing import NDArray
 
 def make_model(task: str, rng: np.random.Generator, l2: float=0.0) -> Model:
@@ -95,12 +96,78 @@ def test_l2_penalty(rng: np.random.Generator):
     assert np.isclose(model2.l2_penalty(), 0.0), "l2 penalty value not as expected for l2 = 0.0"
     
 
+def test_gradcheck(task: str, loss_cls: type, rng: np.random.Generator):
+    """
+    Compare analytic dZ with numerical gradient
+    """
+
+    model = make_model(task=task, rng=rng, l2 = 0.1)
+    X, y = make_data(task=task, rng=rng)
+    loss = loss_cls()
+
+    Z = model.forward(X)
+    L = loss.forward(Z, y)
+    dZ = model.backward(loss.backward())
+    for layer in model.layers:
+        if isinstance(layer, Dense):
+            J = lambda: loss.forward(model.forward(X), y) + model.l2_penalty()
+            grad = num_grad(J, layer.W)
+            assert rel_error(layer.dW, grad) < TOLERANCE, "Difference between calculations and estimate larger than tolerance"
+            grad = num_grad(J, layer.b)
+            assert rel_error(layer.db, grad) < TOLERANCE, "Difference between calculations and estimate larger than tolerance"
+
+
+def test_predict(task: str, rng: np.random.Generator):
+
+    n = 6
+    model = make_model(task=task, rng=rng)
+    X, _ = make_data(task=task, rng=rng)
+    
+    Z = model.forward(X)
+
+    if task == "regression":
+        pred = model.predict(X)
+        assert pred.shape == (n, 1), "Wrong shape"
+        try:
+            model.predict_proba(X)
+        except ValueError:
+            pass
+        else:
+            assert False, ""
+        assert np.allclose(pred, Z), "pred =/= Z"
+
+    elif task == "binary":
+        proba = model.predict_proba(X)
+        assert proba.shape == (n, 1), "proba is wrong shape"
+        assert np.all((proba > 0) & (proba < 1)), "Probability not between 0 and 1"
+
+        pred = model.predict(X)
+        assert pred.shape == (n, 1), "pred is wrong shape"
+        assert np.all((pred == 0) | (pred == 1)), "pred not 0 or 1"
+        assert np.issubdtype(pred.dtype, np.integer), "Pred isn't integer"
+        assert np.array_equal((Z >= 0).astype(int), pred), "pred isn't equal logit"
+
+
+    elif task == "multiclass":
+        proba = model.predict_proba(X)
+        assert proba.shape == (n, 3), "proba is wrong shape"
+        assert np.all((proba > 0) & (proba < 1)), "Probability not between 0 and 1"
+        assert np.allclose(proba.sum(axis=1), 1.0), "Probability doesn't sum to 1"
+        
+        pred = model.predict(X)
+        assert pred.shape == (n, 1), "pred is wrong shape"
+        assert np.issubdtype(pred.dtype, np.integer), "pred isn't integer"
+        assert np.all((pred >= 0) & (pred < 3)), "pred not 0, 1 or 2"
+        assert np.array_equal(np.argmax(Z, axis=1, keepdims=True), pred), "pred isn't equal logit"
+
 def main():
 
     rng = np.random.default_rng(42)
     tests = [(test_shapes, ("regression", rng)), (test_shapes, ("binary", rng)), (test_shapes, ("multiclass", rng)),
              (test_order, ("regression", rng)), (test_order, ("binary", rng)), (test_order, ("multiclass", rng)),
-             (test_bad_task, ("a", rng)), (test_l2_penalty, (rng,))]
+             (test_bad_task, ("a", rng)), (test_l2_penalty, (rng,)),
+             (test_gradcheck, ("regression", MSE, rng)), (test_gradcheck, ("binary", BCE, rng)), (test_gradcheck, ("multiclass", CE, rng)),
+             (test_predict, ("regression", rng)), (test_predict, ("binary", rng)), (test_predict, ("multiclass", rng))]
 
     all_passed = True
     for test, args in tests:
