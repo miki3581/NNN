@@ -85,7 +85,7 @@ def test_bad_task(task: str, rng: np.random.Generator):
     except ValueError:
         pass
     else:
-        assert False, "task='a' did not raise ValueError"
+        assert False, "task='unknown' did not raise ValueError"
 
 
 def test_l2_penalty(rng: np.random.Generator):
@@ -188,7 +188,7 @@ def main():
     rng = np.random.default_rng(42)
     tests = [(test_shapes, ("regression", rng)), (test_shapes, ("binary", rng)), (test_shapes, ("multiclass", rng)),
              (test_order, ("regression", rng)), (test_order, ("binary", rng)), (test_order, ("multiclass", rng)),
-             (test_bad_task, ("a", rng)), (test_l2_penalty, (rng,)),
+             (test_bad_task, ("unknown", rng)), (test_l2_penalty, (rng,)),
              (test_gradcheck, ("regression", MSE, rng)), (test_gradcheck, ("binary", BCE, rng)), (test_gradcheck, ("multiclass", CE, rng)),
              (test_predict, ("regression", rng)), (test_predict, ("binary", rng)), (test_predict, ("multiclass", rng))]
 
@@ -198,12 +198,12 @@ def main():
             test(*args)
         except Exception as e:
             all_passed = False
-            if args:
+            if args and isinstance(args[0], str):
                 print(f"FAIL  {test.__name__} {args[0]} {type(e).__name__}: {e}")
             else:
                 print(f"FAIL  {test.__name__} {type(e).__name__}: {e}")
         else:
-            if args:
+            if args and isinstance(args[0], str):
                 print(f"PASS  {test.__name__} {args[0]}")
             else:
                 print(f"PASS  {test.__name__}")
