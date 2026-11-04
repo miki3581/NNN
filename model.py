@@ -83,3 +83,11 @@ class Model:
             return np.argmax(P, axis=1, keepdims=True)
         elif self.task == "regression":
             return self.forward(X)
+
+
+    def params(self):
+        atrs = []
+        for layer in self.layers:
+            if hasattr(layer, "params"):
+                atrs.extend(layer.params())
+        return atrs

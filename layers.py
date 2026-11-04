@@ -55,3 +55,9 @@ class Dense:
         self.db = np.sum(dZ, axis=0, keepdims=True)
         dX = dZ @ self.W.T
         return dX
+
+    def params(self) -> list[tuple[NDArray, NDArray]]:
+
+        if self.dW is None:
+            raise RuntimeError("dW is empty, params called before backward")
+        return [(self.W, self.dW), (self.b, self.db)]
