@@ -7,6 +7,10 @@ from losses import MSE, BCE, CE
 from numpy.typing import NDArray
 
 def make_model(task: str, rng: np.random.Generator, l2: float=0.0) -> Model:
+    """
+    Helper function building a small network (Dense(4, 5) -> Tanh -> Dense(5, k))
+    k = 3 for multiclass, 1 otherwise; Xavier init, same l2 in both Dense layers
+    """
 
     if task == "multiclass":
         k = 3
@@ -17,6 +21,10 @@ def make_model(task: str, rng: np.random.Generator, l2: float=0.0) -> Model:
     return Model(layers, task)
 
 def make_data(task: str, rng: np.random.Generator, n: int=6) -> tuple[NDArray[np.floating], NDArray[np.floating]]:
+    """
+    Helper function creating X and y arrays
+    float (n, 1) for regression, 0/1 (n, 1) for binary, one-hot (n, 3) for multiclass
+    """
 
     k = 3
     if task == "multiclass":
@@ -31,7 +39,10 @@ def make_data(task: str, rng: np.random.Generator, n: int=6) -> tuple[NDArray[np
 
 
 def test_shapes(task: str, rng: np.random.Generator):
-
+    """
+    Checking shape of dX, dW and db against X, W and b
+    """
+    
     model = make_model(task=task, rng=rng)
     X, y = make_data(task=task, rng=rng)
 
@@ -40,7 +51,6 @@ def test_shapes(task: str, rng: np.random.Generator):
 
     dZ = np.ones_like(Z)
     dX = model.backward(dZ)
-
 
     for layer in model.layers:
         if isinstance(layer, Dense):
@@ -66,7 +76,9 @@ def test_order(task: str, rng: np.random.Generator):
 
 
 def test_bad_task(task: str, rng: np.random.Generator):
-
+    """
+    Unknown task returns ValueError
+    """
 
     try:
         model = make_model(task=task, rng=rng)
@@ -77,7 +89,11 @@ def test_bad_task(task: str, rng: np.random.Generator):
 
 
 def test_l2_penalty(rng: np.random.Generator):
-
+    """
+    Computed L2 penalty value matches value calculated by hand
+    2 examples 1st with different l2 value for each layer, 2nd with l2=0
+    """
+    
     task = "binary"
     model = make_model(task=task, rng=rng)
     model2 = make_model(task=task, rng=rng)
@@ -98,7 +114,7 @@ def test_l2_penalty(rng: np.random.Generator):
 
 def test_gradcheck(task: str, loss_cls: type, rng: np.random.Generator):
     """
-    Compare analytic dZ with numerical gradient
+    Compare analytic dW and db with numerical gradient of loss + L2 
     """
 
     model = make_model(task=task, rng=rng, l2 = 0.1)
@@ -118,7 +134,12 @@ def test_gradcheck(task: str, loss_cls: type, rng: np.random.Generator):
 
 
 def test_predict(task: str, rng: np.random.Generator):
-
+    """
+    regression: predict returns logits, predict_proba raises ValueError
+    binary: shape, probabilities in (0, 1), integer 0/1 labels consistent with Z >= 0
+    multiclass: shape, probability rows sum to 1, integer labels 0..2 consistent with argmax of Z
+    """
+    
     n = 6
     model = make_model(task=task, rng=rng)
     X, _ = make_data(task=task, rng=rng)
@@ -147,7 +168,6 @@ def test_predict(task: str, rng: np.random.Generator):
         assert np.issubdtype(pred.dtype, np.integer), "Pred isn't integer"
         assert np.array_equal((Z >= 0).astype(int), pred), "pred isn't equal logit"
 
-
     elif task == "multiclass":
         proba = model.predict_proba(X)
         assert proba.shape == (n, 3), "proba is wrong shape"
@@ -161,6 +181,9 @@ def test_predict(task: str, rng: np.random.Generator):
         assert np.array_equal(np.argmax(Z, axis=1, keepdims=True), pred), "pred isn't equal logit"
 
 def main():
+    """
+    Run all tests, print PASS/FAIL for each and exit with code 1 if any test failed
+    """
 
     rng = np.random.default_rng(42)
     tests = [(test_shapes, ("regression", rng)), (test_shapes, ("binary", rng)), (test_shapes, ("multiclass", rng)),
