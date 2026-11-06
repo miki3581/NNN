@@ -3,6 +3,7 @@ from model import Model
 from layers import Dense
 from losses import MSE
 from test_model import make_model, make_data
+from optimizers import SGD
 
 
 def test_params_num(rng: np.random.Generator):
@@ -37,10 +38,63 @@ def test_order(rng: np.random.Generator):
         assert False, "params before backward did not raise RuntimeError"
 
 
+def test_step():
+
+    p = np.array([[1.0, 2.0]])
+    g = np.array([[0.5, -1.0]])
+    exp_p = [[0.95, 2.1]]
+    opt = SGD(lr=0.1)
+    opt.step([(p, g)])
+    assert np.allclose(exp_p, p), "Calculated p differs from theoretical"
+
+
+def test_momentum():
+
+    p1 = np.array([[1.0], [1.0]])
+    p2 = np.array([1.0, 1.0, 1.0])
+    g1 = np.ones_like(p1)
+    g2 = np.ones_like(p2)
+    lr, momentum = 0.1, 0.9
+    exp_p = 0.439
+    opt = SGD(lr=lr, momentum=momentum)
+    opt.step([(p1, g1), (p2, g2)])
+    opt.step([(p1, g1), (p2, g2)])
+    opt.step([(p1, g1), (p2, g2)])
+
+    assert np.allclose(exp_p, p1), "Calculated p1 differs from theoretical"
+    assert np.allclose(exp_p, p2), "Calculated p2 differs from theoretical"
+
+
+def test_validation():
+
+    try:
+        SGD(lr=0.0)
+    except ValueError:
+        pass
+    else:
+        assert False, "lr = 0 didn't return error"
+
+    try:
+        SGD(lr=0.1, momentum=1.0)
+    except ValueError:
+        pass
+    else:
+        assert False, "momentum = 1 didn't return error"
+        
+    SGD(lr=0.1, momentum=0.0)
+
+    try:
+        SGD(lr=0.1, momentum=-0.1)
+    except ValueError:
+        pass
+    else:
+        assert False, "momentum = -0.1 didn't return error"
+    
 def main():
 
     rng = np.random.default_rng(42)
-    tests = [(test_params_num, (rng,)), (test_order, (rng,))]
+    tests = [(test_params_num, (rng,)), (test_order, (rng,)), (test_step, ()),
+             (test_momentum, ()), (test_validation, ())]
 
     all_passed = True
     for test, args in tests:
