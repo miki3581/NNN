@@ -147,12 +147,32 @@ def test_parabola(task: str):
     assert np.max(np.abs(p)) < 1e-3, "Parabola is divergent"
 
 
+def test_model_w_opt(rng: np.random.Generator):
+    
+    model = make_model(task="regression", rng=rng)
+    X, y = make_data(task="regression", rng=rng, n=20)
+    opt = Adam(lr=0.01)
+    loss = MSE()
+    L0 = None
+    for _ in range(200):
+        Z = model.forward(X)
+        L = loss.forward(Z, y)
+        if L0 is None:
+            L0 = L
+        dZ = loss.backward()
+        dX = model.backward(dZ)
+        opt.step(model.params())
+    assert L <= L0 / 2, "Loss after 200 steps not small enough"
+
+
+
 def main():
 
     rng = np.random.default_rng(42)
     tests = [(test_params_num, (rng,)), (test_order, (rng,)), (test_step, ("SGD",)),
              (test_step, ("Adam",)), (test_momentum, ()), (test_validation, ("SGD",)),
-             (test_validation, ("Adam",)), (test_parabola, ("SGD", )), (test_parabola, ("Adam",))]
+             (test_validation, ("Adam",)), (test_parabola, ("SGD", )), (test_parabola, ("Adam",)),
+             (test_model_w_opt, (rng,))]
 
     all_passed = True
     for test, args in tests:
