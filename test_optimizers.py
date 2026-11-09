@@ -7,6 +7,11 @@ from optimizers import SGD, Adam
 
 
 def test_params_num(rng: np.random.Generator):
+    """
+    Checking that model.params() returns 4 pairs that are references (not copies) 
+    to W, dW, b, db of both Dense layers
+    """
+    
     model = make_model(task="regression", rng=rng)
     X, y = make_data(task="regression", rng=rng)
     Z = model.forward(X)
@@ -28,7 +33,10 @@ def test_params_num(rng: np.random.Generator):
 
 
 def test_order(rng: np.random.Generator):
-
+    """
+    Checking if params before backward raises RuntimeError
+    """
+    
     model = make_model(task="regression", rng=rng)
     try:
         model.params()
@@ -39,7 +47,11 @@ def test_order(rng: np.random.Generator):
 
 
 def test_step(task: str):
-
+    """
+    Checking value of two parameters agains hand calculated values
+    SGD: p1 = 0.95, p2 = 2.1; Adam: p1 ~ 0.9, p2 ~ 2.1
+    """
+    
     p1 = np.array([[1.0]])
     p2 = np.array([[2.0]])
     g1 = np.array([[0.5]])
@@ -59,7 +71,11 @@ def test_step(task: str):
 
 
 def test_momentum():
-
+    """
+    Checking if momentum correctly influences final parameter value
+    lr, momentum = 0.1, 0.9, p = 0.439
+    """
+    
     p1 = np.array([[1.0], [1.0]])
     p2 = np.array([1.0, 1.0])
     g1 = np.ones_like(p1)
@@ -76,7 +92,11 @@ def test_momentum():
 
 
 def test_validation(task: str):
-
+    """
+    Checking that invalid hyperparameters raise ValueError
+    and boundary values that are allowed (momentum=0, beta=0) do not
+    """
+    
     if task == "SGD":
         try:
             SGD(lr=0.0)
@@ -136,7 +156,12 @@ def test_validation(task: str):
 
 
 def test_parabola(task: str):
-
+    """
+    Minimizing convex function for 500 steps, final max gradient p must be below 1e-3
+    Gradient is recomputed from the current p in every step (p.copy(), because p is
+    updated in place)
+    """
+    
     p = np.array([1.0 , -2.0])
     if task == "SGD":
         opt = SGD(lr=0.1)
@@ -148,6 +173,10 @@ def test_parabola(task: str):
 
 
 def test_model_w_opt(rng: np.random.Generator):
+    """
+    Testing small regression model with MSE and Adam for 200 steps
+    Checking if loss is lowering fast enough by comparing loss form first and last iteration
+    """
     
     model = make_model(task="regression", rng=rng)
     X, y = make_data(task="regression", rng=rng, n=20)
@@ -167,7 +196,10 @@ def test_model_w_opt(rng: np.random.Generator):
 
 
 def main():
-
+    """
+    Runs all tests and prints PASS/FAIL for each
+    """
+    
     rng = np.random.default_rng(42)
     tests = [(test_params_num, (rng,)), (test_order, (rng,)), (test_step, ("SGD",)),
              (test_step, ("Adam",)), (test_momentum, ()), (test_validation, ("SGD",)),

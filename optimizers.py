@@ -2,9 +2,15 @@ import numpy as np
 
 
 class SGD:
-
+    """
+    Stochastic gradient descend with optioal momentum
+    """
+    
     def __init__(self, lr: float, momentum: float=0.0) -> None:
-
+        """
+        Stores hyperparameters, checks their value and creates/restets velocity
+        """
+        
         self.lr = lr
         self.momentum = momentum
 
@@ -18,7 +24,10 @@ class SGD:
 
 
     def step(self, params: list) -> None:
-
+        """
+        In place updates value of parameters from list
+        """
+        
         if self.v is None:
             self.v = [np.zeros_like(p) for p, _ in params]
         for i, (p, g) in enumerate(params):
@@ -30,9 +39,15 @@ class SGD:
 
 
 class Adam:
-
+    """
+    Adam optimizer with bias correction
+    """
+    
     def __init__(self, lr: float=1e-3, beta1: float=0.9, beta2: float=0.999, eps: float=1e-8) -> None:
-
+        """
+        Stores hyperparameters, checks their value and creates/restets moments and counter
+        """
+        
         self.lr = lr
         self.beta1 = beta1
         self.beta2 = beta2
@@ -56,10 +71,13 @@ class Adam:
 
 
     def step(self, params: list) -> None:
-
+        """
+        Creates zeros array for m and v 
+        Upadtes counter and moments, applies bias corection and updates parameter inplace
+        """
+        
         if self.v is None:
             self.m = [np.zeros_like(p) for p, _ in params]
-        if self.v is None:
             self.v = [np.zeros_like(p) for p, _ in params]
         
         self.t += 1
